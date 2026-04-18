@@ -9,6 +9,7 @@ A **complete production-ready rebuild** of FoodLens using:
 - ✅ Full test coverage structure
 - ✅ Redux-like centralized state (AppState)
 
+Demo Video - https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing
 ---
 
 ## 📊 Before & After Architecture
