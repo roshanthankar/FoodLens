@@ -2,8 +2,8 @@
 
 An iOS macro tracking app built for Indians who eat Indian food.
 
-Demo Video - https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing
----
+Demo Video - [here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing
+---)
 
 ## What it does
 
