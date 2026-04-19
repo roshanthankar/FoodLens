@@ -7,6 +7,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var settings: [UserSettings]
 
+    @State private var showSavedToast = false
+
     private var userSettings: UserSettings? { settings.first }
 
     var body: some View {
@@ -62,6 +64,7 @@ struct SettingsView: View {
 
                                     Button("Apply") {
                                         applyPreset(preset.targets)
+                                        showToast()
                                     }
                                     .buttonStyle(.bordered)
                                     .tint(.primary)
@@ -77,13 +80,14 @@ struct SettingsView: View {
                                 }
                             }
 
-                            Toggle("Show Fiber", isOn: binding(for: \.showFiber, defaultValue: false))
-                            Toggle("Enable Haptics", isOn: binding(for: \.enableHaptics, defaultValue: true))
+                            Toggle("Show Fiber",      isOn: binding(for: \.showFiber,      defaultValue: false))
+                            Toggle("Enable Haptics",  isOn: binding(for: \.enableHaptics,  defaultValue: true))
                         }
 
                         Section("About") {
                             LabeledContent("Food database", value: "IFCT + Indian dishes")
-                            LabeledContent("Storage", value: "On-device")
+                            LabeledContent("Storage",       value: "On-device (SwiftData)")
+                            LabeledContent("Version",       value: appVersion)
                         }
                     }
                 } else {
@@ -96,8 +100,18 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .overlay(alignment: .bottom) {
+                if showSavedToast {
+                    SavedToast()
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 12)
+                }
+            }
+            .animation(.spring(duration: 0.3), value: showSavedToast)
         }
     }
+
+    // MARK: - Helpers
 
     private func binding<Value>(
         for keyPath: ReferenceWritableKeyPath<UserSettings, Value>,
@@ -123,8 +137,40 @@ struct SettingsView: View {
             carbs: s.carbsTarget,
             fat: s.fatTarget
         )
+        showToast()
+    }
+
+    private func showToast() {
+        showSavedToast = true
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            showSavedToast = false
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
     }
 }
+
+// MARK: - Saved Toast
+
+private struct SavedToast: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+            Text("Saved")
+                .font(.subheadline.weight(.medium))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.primary.opacity(0.9), in: Capsule())
+    }
+}
+
+// MARK: - Macro Target Control
 
 private struct MacroTargetControl: View {
     let title: String
@@ -173,7 +219,7 @@ private struct MacroTargetControl: View {
                 }
                 .labelsHidden()
 
-                Text("Use stepper or enter a custom value")
+                Text("Use stepper or type a value")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
@@ -186,9 +232,7 @@ private struct MacroTargetControl: View {
         }
         .onChange(of: value) { _, newValue in
             let rendered = String(Int(newValue))
-            if draftValue != rendered {
-                draftValue = rendered
-            }
+            if draftValue != rendered { draftValue = rendered }
         }
     }
 
@@ -201,35 +245,34 @@ private struct MacroTargetControl: View {
             draftValue = String(Int(value))
             return
         }
-
         updateValue(parsed)
         draftValue = String(Int(value))
     }
 }
 
+// MARK: - Presets
+
 private enum SettingsPreset: CaseIterable {
-    case fatLoss
-    case maintenance
-    case muscleGain
+    case fatLoss, maintenance, muscleGain
 
     var title: String {
         switch self {
-        case .fatLoss: return "Fat Loss"
+        case .fatLoss:     return "Fat Loss"
         case .maintenance: return "Maintenance"
-        case .muscleGain: return "Muscle Gain"
+        case .muscleGain:  return "Muscle Gain"
         }
     }
 
     var subtitle: String {
-        let targets = targets
-        return "P \(Int(targets.protein)) • C \(Int(targets.carbs)) • F \(Int(targets.fat))"
+        let t = targets
+        return "P \(Int(t.protein)) · C \(Int(t.carbs)) · F \(Int(t.fat))"
     }
 
     var targets: MacroTargets {
         switch self {
-        case .fatLoss: return .fatLoss
+        case .fatLoss:     return .fatLoss
         case .maintenance: return .maintenance
-        case .muscleGain: return .muscleGain
+        case .muscleGain:  return .muscleGain
         }
     }
 }

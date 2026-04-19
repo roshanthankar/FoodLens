@@ -7,6 +7,7 @@ struct GuidedSetupView: View {
 
     // Step
     @State private var step: Step = .profile
+    @State private var saveError: String?
 
     // Profile inputs
     @State private var age: Int = 25
@@ -73,6 +74,14 @@ struct GuidedSetupView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: step)
+        .alert("Couldn't Save Settings", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK") { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     // MARK: - Progress Bar
@@ -290,9 +299,13 @@ struct GuidedSetupView: View {
         settings.onboardingPath = .guided
         settings.hasCompletedOnboarding = true
 
-        try? modelContext.save()
-        appState.userSettings = settings
-        appState.routing = .today
+        do {
+            try modelContext.save()
+            appState.userSettings = settings
+            appState.routing = .today
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 
     // MARK: - Helpers

@@ -243,7 +243,7 @@ struct ContentView: View {
     @Environment(MealLoggingInteractor.self) private var mealLoggingInteractor
     @Environment(\.modelContext) private var modelContext
     @State private var showingAddMeal = false
-    
+
     var body: some View {
         Group {
             switch appState.routing {
@@ -254,6 +254,18 @@ struct ContentView: View {
             }
         }
         .environment(appState)
+        .alert(
+            "Something Went Wrong",
+            isPresented: Binding(
+                get: { appState.error != nil },
+                set: { if !$0 { appState.clearError() } }
+            ),
+            presenting: appState.error
+        ) { _ in
+            Button("OK") { appState.clearError() }
+        } message: { error in
+            Text(error.localizedDescription)
+        }
     }
     
     private var mainTabView: some View {

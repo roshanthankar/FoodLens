@@ -8,6 +8,7 @@ struct QuickSetupView: View {
     @State private var protein: Double = 150
     @State private var carbs: Double = 200
     @State private var fat: Double = 60
+    @State private var saveError: String?
 
     private var calories: Double {
         (protein * 4) + (carbs * 4) + (fat * 9)
@@ -53,6 +54,14 @@ struct QuickSetupView: View {
         }
         .navigationTitle("Set Your Targets")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Couldn't Save Settings", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK") { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private func save() {
@@ -62,9 +71,13 @@ struct QuickSetupView: View {
         settings.fatTarget = fat
         settings.onboardingPath = .quick
         settings.hasCompletedOnboarding = true
-        try? modelContext.save()
-        appState.userSettings = settings
-        appState.routing = .today
+        do {
+            try modelContext.save()
+            appState.userSettings = settings
+            appState.routing = .today
+        } catch {
+            saveError = error.localizedDescription
+        }
     }
 }
 

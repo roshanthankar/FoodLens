@@ -6,6 +6,8 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var summaries: [HistoryDaySummary] = []
+    @State private var isLoading = false
+    @State private var hasLoaded = false
 
     private var macroTargets: MacroTargets {
         guard let settings = appState.userSettings else { return .default }
@@ -16,16 +18,14 @@ struct HistoryView: View {
         )
     }
 
-    private var averageProtein: Double {
-        summaries.isEmpty ? 0 : summaries.reduce(0) { $0 + $1.protein } / Double(summaries.count)
-    }
-
-    private var averageCarbs: Double {
-        summaries.isEmpty ? 0 : summaries.reduce(0) { $0 + $1.carbs } / Double(summaries.count)
-    }
-
-    private var averageFat: Double {
-        summaries.isEmpty ? 0 : summaries.reduce(0) { $0 + $1.fat } / Double(summaries.count)
+    private var averages: (protein: Double, carbs: Double, fat: Double) {
+        guard !summaries.isEmpty else { return (0, 0, 0) }
+        let n = Double(summaries.count)
+        return (
+            summaries.reduce(0) { $0 + $1.protein } / n,
+            summaries.reduce(0) { $0 + $1.carbs }   / n,
+            summaries.reduce(0) { $0 + $1.fat }     / n
+        )
     }
 
     private var chartLogs: [DailyLog] {
@@ -43,90 +43,104 @@ struct HistoryView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    ViewThatFits {
-                        HStack(alignment: .top, spacing: 24) {
-                            HistoryMetricText(title: "Avg Protein", value: "\(Int(averageProtein))g", tint: .green)
-                            HistoryMetricText(title: "Avg Carbs", value: "\(Int(averageCarbs))g", tint: .blue)
-                            HistoryMetricText(title: "Avg Fat", value: "\(Int(averageFat))g", tint: .orange)
-                            Spacer(minLength: 0)
-                        }
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            HistoryMetricText(title: "Avg Protein", value: "\(Int(averageProtein))g", tint: .green)
-                            HistoryMetricText(title: "Avg Carbs", value: "\(Int(averageCarbs))g", tint: .blue)
-                            HistoryMetricText(title: "Avg Fat", value: "\(Int(averageFat))g", tint: .orange)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(Color.clear)
-
-                Section("Protein Trend") {
-                    WeeklyProteinChart(
-                        dailyLogs: chartLogs,
-                        target: macroTargets.protein
-                    )
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-
-                Section("Daily Breakdown") {
-                    if summaries.isEmpty {
-                        ContentUnavailableView(
-                            "No History Yet",
-                            systemImage: "chart.bar.xaxis",
-                            description: Text("Logged meals will show up here over time.")
-                        )
-                    } else {
-                        ForEach(summaries.reversed()) { summary in
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(summary.title)
-                                            .font(.headline)
-                                            .foregroundStyle(.primary)
-                                        Text("\(summary.entryCount) meal\(summary.entryCount == 1 ? "" : "s")")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    Text("\(Int(summary.calories)) kcal")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .monospacedDigit()
+            Group {
+                if isLoading && summaries.isEmpty {
+                    ProgressView("Loading history…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        Section {
+                            ViewThatFits {
+                                HStack(alignment: .top, spacing: 24) {
+                                    HistoryMetricText(title: "Avg Protein", value: "\(Int(averages.protein))g", tint: .green)
+                                    HistoryMetricText(title: "Avg Carbs",   value: "\(Int(averages.carbs))g",   tint: .blue)
+                                    HistoryMetricText(title: "Avg Fat",     value: "\(Int(averages.fat))g",     tint: .orange)
+                                    Spacer(minLength: 0)
                                 }
 
-                                HStack(spacing: 8) {
-                                    HistoryMacroPill(label: "P", value: summary.protein, tint: .green)
-                                    HistoryMacroPill(label: "C", value: summary.carbs, tint: .blue)
-                                    HistoryMacroPill(label: "F", value: summary.fat, tint: .orange)
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HistoryMetricText(title: "Avg Protein", value: "\(Int(averages.protein))g", tint: .green)
+                                    HistoryMetricText(title: "Avg Carbs",   value: "\(Int(averages.carbs))g",   tint: .blue)
+                                    HistoryMetricText(title: "Avg Fat",     value: "\(Int(averages.fat))g",     tint: .orange)
                                 }
                             }
                             .padding(.vertical, 4)
                         }
+                        .listRowBackground(Color.clear)
+
+                        Section("Protein Trend") {
+                            WeeklyProteinChart(
+                                dailyLogs: chartLogs,
+                                target: macroTargets.protein
+                            )
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+
+                        Section("Daily Breakdown") {
+                            if summaries.isEmpty {
+                                ContentUnavailableView(
+                                    "No History Yet",
+                                    systemImage: "chart.bar.xaxis",
+                                    description: Text("Logged meals will show up here over time.")
+                                )
+                            } else {
+                                ForEach(summaries.reversed()) { summary in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(summary.title)
+                                                    .font(.headline)
+                                                    .foregroundStyle(.primary)
+                                                Text("\(summary.entryCount) meal\(summary.entryCount == 1 ? "" : "s")")
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                            }
+
+                                            Spacer()
+
+                                            Text("\(Int(summary.calories)) kcal")
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .monospacedDigit()
+                                        }
+
+                                        HStack(spacing: 8) {
+                                            HistoryMacroPill(label: "P", value: summary.protein, tint: .green)
+                                            HistoryMacroPill(label: "C", value: summary.carbs,   tint: .blue)
+                                            HistoryMacroPill(label: "F", value: summary.fat,     tint: .orange)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                    .accessibilityElement(children: .ignore)
+                                    .accessibilityLabel(summary.title)
+                                    .accessibilityValue("\(summary.entryCount) meals, \(Int(summary.calories)) kcal, \(Int(summary.protein))g protein, \(Int(summary.carbs))g carbs, \(Int(summary.fat))g fat")
+                                }
+                            }
+                        }
                     }
+                    .listStyle(.insetGrouped)
+                    .refreshable { await loadHistory(force: true) }
                 }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle("History")
-            .refreshable { await loadHistory() }
             .task { await loadHistory() }
         }
     }
 
-    private func loadHistory() async {
+    private func loadHistory(force: Bool = false) async {
+        guard !isLoading else { return }
+        guard force || !hasLoaded else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let startDate = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+        guard let startDate = calendar.date(byAdding: .day, value: -6, to: today) else { return }
 
         let descriptor = FetchDescriptor<MealEntry>(
-            predicate: #Predicate { meal in
-                meal.timestamp >= startDate
-            },
+            predicate: #Predicate { meal in meal.timestamp >= startDate },
             sortBy: [SortDescriptor(\.timestamp)]
         )
 
@@ -137,26 +151,25 @@ struct HistoryView: View {
             }
 
             summaries = (0..<7).compactMap { offset in
-                guard let date = calendar.date(byAdding: .day, value: offset, to: startDate) else {
-                    return nil
-                }
-
+                guard let date = calendar.date(byAdding: .day, value: offset, to: startDate) else { return nil }
                 let entries = groupedMeals[date] ?? []
-
                 return HistoryDaySummary(
                     date: date,
                     protein: entries.reduce(0) { $0 + $1.proteinGrams },
-                    carbs: entries.reduce(0) { $0 + $1.carbsGrams },
-                    fat: entries.reduce(0) { $0 + $1.fatGrams },
+                    carbs:   entries.reduce(0) { $0 + $1.carbsGrams },
+                    fat:     entries.reduce(0) { $0 + $1.fatGrams },
                     calories: entries.reduce(0) { $0 + $1.calories },
                     entryCount: entries.count
                 )
             }
+            hasLoaded = true
         } catch {
             appState.setError(.databaseError(error.localizedDescription))
         }
     }
 }
+
+// MARK: - Supporting types
 
 private struct HistoryDaySummary: Identifiable {
     let date: Date
@@ -169,7 +182,7 @@ private struct HistoryDaySummary: Identifiable {
     var id: Date { date }
 
     var title: String {
-        if Calendar.current.isDateInToday(date) { return "Today" }
+        if Calendar.current.isDateInToday(date)     { return "Today" }
         if Calendar.current.isDateInYesterday(date) { return "Yesterday" }
         return date.formatted(.dateTime.weekday(.wide))
     }

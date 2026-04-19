@@ -84,7 +84,7 @@ struct FoodSearchView: View {
         )
         .navigationTitle("Log Meal")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
+        .task {
             foodSearchInteractor.loadDefaults()
         }
         .onDisappear {
@@ -164,7 +164,7 @@ private struct FoodSearchRow: View {
                     .foregroundStyle(isFavorite ? .pink : .secondary)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(isFavorite ? "Remove favorite" : "Add favorite")
+            .accessibilityLabel("\(food.foodName) — \(isFavorite ? "Remove from" : "Add to") favorites")
         }
     }
 }

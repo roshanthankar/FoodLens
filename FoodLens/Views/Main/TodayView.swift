@@ -10,6 +10,8 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showLogMealSheet = false
     @State private var selectedMealType: MealType = .breakfast
+    @State private var deletedMealName: String?
+    @State private var showDeleteToast = false
 
     private var macroTargets: MacroTargets {
         guard let settings = appState.userSettings else { return .default }
@@ -27,7 +29,6 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Header section (scrollable)
                 Section {
                     Text("Today, \(formattedDate)")
                         .font(.largeTitle.weight(.bold))
@@ -37,7 +38,7 @@ struct TodayView: View {
                 }
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-                
+
                 caloriesSummarySection
                 macroGaugesSection
                 quickActionsSection
@@ -58,11 +59,18 @@ struct TodayView: View {
             .refreshable {
                 await refreshData()
             }
-        }
-        .task {
-            await refreshData()
+            .overlay(alignment: .bottom) {
+                if showDeleteToast, let name = deletedMealName {
+                    DeleteToast(name: name)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 12)
+                }
+            }
+            .animation(.spring(duration: 0.3), value: showDeleteToast)
         }
     }
+
+    // MARK: - Sections
 
     private var caloriesSummarySection: some View {
         Section {
@@ -84,7 +92,7 @@ struct TodayView: View {
                     .font(.body.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(.primary)
-                
+
                 Text("kcal")
                     .font(.body)
                     .foregroundStyle(.secondary)
@@ -107,8 +115,8 @@ struct TodayView: View {
         Section {
             VStack(spacing: 14) {
                 MacroGaugeCard(label: "Protein", value: appState.todayTotals.protein, target: macroTargets.protein, color: .green)
-                MacroGaugeCard(label: "Carbs", value: appState.todayTotals.carbs, target: macroTargets.carbs, color: .blue)
-                MacroGaugeCard(label: "Fat", value: appState.todayTotals.fat, target: macroTargets.fat, color: .orange)
+                MacroGaugeCard(label: "Carbs",   value: appState.todayTotals.carbs,   target: macroTargets.carbs,   color: .blue)
+                MacroGaugeCard(label: "Fat",     value: appState.todayTotals.fat,     target: macroTargets.fat,     color: .orange)
             }
             .padding(.vertical, 4)
         }
@@ -119,7 +127,7 @@ struct TodayView: View {
     private var quickActionsSection: some View {
         Section("Quick Log") {
             if appState.recentFoods.isEmpty {
-                Text("Your recently logged foods will show up here.")
+                Text("Your recently logged foods will appear here.")
                     .font(.body)
                     .foregroundStyle(.secondary)
             } else {
@@ -157,6 +165,8 @@ struct TodayView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Quick log \(food.foodName)")
+                    .accessibilityHint("Logs one serving to \(mealLoggingInteractor.suggestedMealType().displayName)")
                 }
             }
         }
@@ -170,9 +180,13 @@ struct TodayView: View {
                         MealRow(meal: meal)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
+                                    deletedMealName = meal.foodName
                                     Task {
                                         await mealLoggingInteractor.deleteMeal(meal)
                                         await refreshData()
+                                        showDeleteToast = true
+                                        try? await Task.sleep(for: .seconds(2.5))
+                                        showDeleteToast = false
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
@@ -189,7 +203,7 @@ struct TodayView: View {
             ContentUnavailableView(
                 "No Meals Logged",
                 systemImage: "fork.knife",
-                description: Text("Tap the add button to log your first meal today.")
+                description: Text("Tap + to log your first meal. Swipe left on any meal to delete it.")
             )
         }
     }
@@ -203,62 +217,55 @@ struct TodayView: View {
         let startOfDay = calendar.startOfDay(for: Date())
 
         let todayDescriptor = FetchDescriptor<MealEntry>(
-            predicate: #Predicate { meal in
-                meal.timestamp >= startOfDay
-            },
+            predicate: #Predicate { meal in meal.timestamp >= startOfDay },
             sortBy: [SortDescriptor(\.timestamp)]
         )
 
         var recentFoodsDescriptor = FetchDescriptor<FoodItem>(
-            predicate: #Predicate { food in
-                food.lastUsedDate != nil
-            },
+            predicate: #Predicate { food in food.lastUsedDate != nil },
             sortBy: [SortDescriptor(\.lastUsedDate, order: .reverse)]
         )
         recentFoodsDescriptor.fetchLimit = 10
 
         let favoriteFoodsDescriptor = FetchDescriptor<FoodItem>(
-            predicate: #Predicate { food in
-                food.isFavorite == true
-            },
+            predicate: #Predicate { food in food.isFavorite == true },
             sortBy: [SortDescriptor(\.foodName)]
         )
 
         do {
-            let todayMeals = try modelContext.fetch(todayDescriptor)
-            let recentFoods = try modelContext.fetch(recentFoodsDescriptor)
+            let todayMeals    = try modelContext.fetch(todayDescriptor)
+            let recentFoods   = try modelContext.fetch(recentFoodsDescriptor)
             let favoriteFoods = try modelContext.fetch(favoriteFoodsDescriptor)
 
-            await MainActor.run {
-                appState.updateTodayMeals(todayMeals)
-                appState.updateRecentFoods(recentFoods)
-                appState.updateFavoriteFoods(favoriteFoods)
-            }
+            appState.updateTodayMeals(todayMeals)
+            appState.updateRecentFoods(recentFoods)
+            appState.updateFavoriteFoods(favoriteFoods)
         } catch {
             appState.setError(.databaseError(error.localizedDescription))
         }
     }
 }
 
-private struct GlassIconButton: View {
-    let systemImage: String
-    let action: () -> Void
+// MARK: - Delete Toast
+
+private struct DeleteToast: View {
+    let name: String
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 42, height: 42)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                )
+        HStack(spacing: 8) {
+            Image(systemName: "trash")
+                .font(.subheadline)
+            Text("\(name) deleted")
+                .font(.subheadline.weight(.medium))
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.primary.opacity(0.9), in: Capsule())
     }
 }
+
+// MARK: - Meal Row
 
 struct MealRow: View {
     let meal: MealEntry
@@ -284,19 +291,22 @@ struct MealRow: View {
             }
 
             HStack(spacing: 8) {
-                MacroChip(value: meal.proteinGrams, color: .green)
-                MacroChip(value: meal.carbsGrams, color: .blue)
-                MacroChip(value: meal.fatGrams, color: .orange)
+                MacroChip(label: "Protein", value: meal.proteinGrams, color: .green)
+                MacroChip(label: "Carbs",   value: meal.carbsGrams,   color: .blue)
+                MacroChip(label: "Fat",     value: meal.fatGrams,     color: .orange)
             }
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(meal.foodName)
-        .accessibilityValue("\(meal.servingSizeText), \(meal.timeDisplay), \(Int(meal.proteinGrams)) grams protein, \(Int(meal.carbsGrams)) grams carbs, \(Int(meal.fatGrams)) grams fat")
+        .accessibilityValue("\(meal.servingSizeText), \(meal.timeDisplay), \(Int(meal.proteinGrams))g protein, \(Int(meal.carbsGrams))g carbs, \(Int(meal.fatGrams))g fat")
     }
 }
 
+// MARK: - Macro Chip
+
 struct MacroChip: View {
+    let label: String
     let value: Double
     let color: Color
 
@@ -308,6 +318,7 @@ struct MacroChip: View {
             .padding(.vertical, 6)
             .background(color.opacity(0.12))
             .clipShape(Capsule())
+            .accessibilityLabel("\(label): \(Int(value)) grams")
     }
 }
 
