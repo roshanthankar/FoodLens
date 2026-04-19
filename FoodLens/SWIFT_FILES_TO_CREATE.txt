@@ -1,8 +1,8 @@
 SWIFT FILES STATUS
 ==================
 
-DONE
-----
+ALL DONE — no files remaining to create
+-----------------------------------------
 App/FoodLensApp.swift
 App/AppState.swift
 Models/FoodItem.swift
@@ -13,19 +13,15 @@ Repositories/FoodRepository.swift
 Repositories/MealLogRepository.swift
 Interactors/FoodSearchInteractor.swift
 Interactors/MealLoggingInteractor.swift
+Interactors/SettingsInteractor.swift
 Views/Main/TodayView.swift
 Views/Main/HistoryView.swift
 Views/Main/SettingsView.swift
 Views/Main/FoodSearchView.swift
 Views/Main/LogMealSheet.swift
+Views/Onboarding/OnboardingWelcomeView.swift
+Views/Onboarding/QuickSetupView.swift
+Views/Onboarding/GuidedSetupView.swift
 Views/Components/MacroGaugeCard.swift
 Views/Components/WeeklyProteinChart.swift
 Utilities/HapticManager.swift
-
-
-TO DO
------
-Views/Onboarding/OnboardingCoordinator.swift   (currently a placeholder in FoodLensApp.swift)
-Views/Onboarding/QuickSetupView.swift          (user enters macros directly)
-Views/Onboarding/GuidedSetupView.swift         (user enters profile, app calculates targets)
-Interactors/SettingsInteractor.swift           (BMR/TDEE calc + settings validation)

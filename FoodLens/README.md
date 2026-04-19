@@ -8,6 +8,7 @@ Demo video — [watch here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lN
 
 ## What it does
 
+- Onboarding — guided setup (BMR/TDEE calculation) or quick manual macro entry
 - Log Indian meals and track daily protein, carbs, and fat
 - 542 Indian dishes from the IFCT 2017 database
 - See macro progress gauges, calorie total, and 7-day history
@@ -49,16 +50,19 @@ See `ARCHITECTURE.md` for the full breakdown.
 | Repositories (2) | Done |
 | FoodSearchInteractor | Done |
 | MealLoggingInteractor | Done |
+| SettingsInteractor | Done |
 | TodayView | Done |
 | HistoryView | Done |
 | FoodSearchView + LogMealSheet | Done |
 | SettingsView | Done |
+| Onboarding (3 screens) | Done |
 | MacroGaugeCard + WeeklyProteinChart | Done |
 | HapticManager | Done |
+| App icon (light / dark / tinted) | Done |
 | Food database (542 dishes) | Done |
-| Onboarding screens | To do |
-| SettingsInteractor | To do |
-| Privacy policy | To do |
+| Privacy policy | Done |
+
+**The app is feature complete.**
 
 ---
 
