@@ -108,7 +108,7 @@ Two paths for new users:
 |---|---|
 | Architecture + AppState | Done |
 | Food database (542 dishes) | Done |
-| Onboarding screens | Done |
+| Onboarding screens | To do |
 | TodayView + MealLoggingInteractor | Done |
 | HistoryView, SettingsView, FoodSearchView, LogMealSheet | To do |
 | HistoryInteractor, SettingsInteractor | To do |
