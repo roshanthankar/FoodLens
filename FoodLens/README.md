@@ -81,7 +81,7 @@ FoodLens/
 
 ---
 
-## Onboarding
+## Onboarding (currently working)
 
 Two paths for new users:
 
