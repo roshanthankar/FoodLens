@@ -2,7 +2,7 @@
 
 An iOS macro tracker built for Indians who eat Indian food.
 
-Demo — [watch here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing)
+Demo video — [watch here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing)
 
 ---
 
