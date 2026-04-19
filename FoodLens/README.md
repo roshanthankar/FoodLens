@@ -1,92 +1,18 @@
 # FoodLens
 
-An iOS macro tracking app built for Indians who eat Indian food.
+An iOS macro tracker built for Indians who eat Indian food.
 
-Demo Video - [here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing
----)
+Demo — [watch here](https://drive.google.com/file/d/1kddSJvSywgCy6idM9lNZZv3Qoz8SESqt/view?usp=sharing)
+
+---
 
 ## What it does
 
 - Log Indian meals and track daily protein, carbs, and fat
-- No login required — everything stays on your phone
-- Works offline — no internet needed
-- 542 Indian dishes from IFCT 2017 (India's official nutrition data)
-
----
-
-## Architecture — 3 layers
-
-```
-Views  →  Interactors  →  Repositories  →  SwiftData (local storage)
-```
-
-| Layer | What it does | Files |
-|---|---|---|
-| **Views** | Screens the user sees | TodayView, HistoryView, SettingsView, FoodSearchView, LogMealSheet |
-| **Interactors** | Business logic (calculations, rules) | MealLoggingInteractor, FoodSearchInteractor, HistoryInteractor, SettingsInteractor |
-| **Repositories** | Reads and writes data | FoodRepository, MealLogRepository |
-
-All state lives in one place: `AppState.swift`. Views read from it, Interactors write to it.
-
----
-
-## File structure
-
-```
-FoodLens/
-├── App/
-│   ├── FoodLensApp.swift           # Entry point + routing
-│   └── AppState.swift              # Central state
-│
-├── Models/
-│   ├── FoodItem.swift
-│   ├── MealEntry.swift
-│   ├── DailyLog.swift
-│   └── UserSettings.swift
-│
-├── Repositories/
-│   ├── FoodRepository.swift
-│   └── MealLogRepository.swift
-│
-├── Interactors/
-│   ├── MealLoggingInteractor.swift
-│   ├── FoodSearchInteractor.swift
-│   ├── HistoryInteractor.swift
-│   └── SettingsInteractor.swift
-│
-├── Views/
-│   ├── Main/
-│   │   ├── TodayView.swift
-│   │   ├── HistoryView.swift
-│   │   ├── SettingsView.swift
-│   │   ├── LogMealSheet.swift
-│   │   └── FoodSearchView.swift
-│   ├── Components/
-│   │   ├── MacroGaugeCard.swift
-│   │   ├── WeeklyProteinChart.swift
-│   │   └── MealListSection.swift
-│   └── Onboarding/
-│       ├── OnboardingCoordinator.swift
-│       ├── OnboardingPathSelectionView.swift
-│       ├── QuickSetupView.swift
-│       └── GuidedSetupView.swift
-│
-├── Utilities/
-│   ├── HapticManager.swift
-│   └── Extensions.swift
-│
-└── Resources/
-    └── foodlens-food-database.json  # 542 IFCT foods
-```
-
----
-
-## Onboarding (currently working)
-
-Two paths for new users:
-
-- **I know my macros** — enter protein/carbs/fat directly (~30 seconds)
-- **Calculate for me** — enter age, weight, height, and goal. App calculates targets (~90 seconds)
+- 542 Indian dishes from the IFCT 2017 database
+- See macro progress gauges, calorie total, and 7-day history
+- Quick-log recently used foods in one tap
+- No login, no internet — everything stays on device
 
 ---
 
@@ -95,10 +21,22 @@ Two paths for new users:
 | What | Tool |
 |---|---|
 | Language | Swift |
-| UI | SwiftUI (native iOS components) |
-| Local storage | SwiftData |
-| Food database | IFCT 2017 JSON (seeded on first launch) |
+| UI | SwiftUI |
+| Storage | SwiftData |
 | Charts | Apple Charts framework |
+| Food data | IFCT 2017 JSON (542 items) |
+
+---
+
+## Architecture
+
+```
+Views  →  Interactors  →  Repositories  →  SwiftData
+```
+
+All shared state lives in `AppState.swift`. Views read from it, Interactors write to it.
+
+See `ARCHITECTURE.md` for the full breakdown.
 
 ---
 
@@ -106,26 +44,31 @@ Two paths for new users:
 
 | Area | Status |
 |---|---|
-| Architecture + AppState | Done |
+| AppState + routing | Done |
+| SwiftData models (4) | Done |
+| Repositories (2) | Done |
+| FoodSearchInteractor | Done |
+| MealLoggingInteractor | Done |
+| TodayView | Done |
+| HistoryView | Done |
+| FoodSearchView + LogMealSheet | Done |
+| SettingsView | Done |
+| MacroGaugeCard + WeeklyProteinChart | Done |
+| HapticManager | Done |
 | Food database (542 dishes) | Done |
 | Onboarding screens | To do |
-| TodayView + MealLoggingInteractor | Done |
-| HistoryView, SettingsView, FoodSearchView, LogMealSheet | To do |
-| HistoryInteractor, SettingsInteractor | To do |
-| Privacy policy (required for App Store) | To do |
+| SettingsInteractor | To do |
+| Privacy policy | To do |
 
 ---
 
 ## Getting started
 
 ```bash
-# Open in Xcode
 open FoodLens.xcodeproj
 ```
 
-Start by reading these files in order:
-1. `AppState.swift` — understand how state flows
-2. `MealLoggingInteractor.swift` — the pattern every interactor follows
-3. `TodayView.swift` — the pattern every view follows
-
-Then build the remaining files by copying those same patterns.
+Read these files in order to understand how everything fits together:
+1. `App/AppState.swift` — how state flows through the app
+2. `Interactors/MealLoggingInteractor.swift` — how business logic is structured
+3. `Views/Main/TodayView.swift` — how views consume state and call interactors

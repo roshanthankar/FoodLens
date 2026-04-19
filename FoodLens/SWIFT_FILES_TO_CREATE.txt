@@ -1,29 +1,31 @@
-# Swift Files Being Created
+SWIFT FILES STATUS
+==================
 
-## ✅ COMPLETED
-1. App/AppState.swift - Centralized state (DONE)
+DONE
+----
+App/FoodLensApp.swift
+App/AppState.swift
+Models/FoodItem.swift
+Models/MealEntry.swift
+Models/DailyLog.swift
+Models/UserSettings.swift
+Repositories/FoodRepository.swift
+Repositories/MealLogRepository.swift
+Interactors/FoodSearchInteractor.swift
+Interactors/MealLoggingInteractor.swift
+Views/Main/TodayView.swift
+Views/Main/HistoryView.swift
+Views/Main/SettingsView.swift
+Views/Main/FoodSearchView.swift
+Views/Main/LogMealSheet.swift
+Views/Components/MacroGaugeCard.swift
+Views/Components/WeeklyProteinChart.swift
+Utilities/HapticManager.swift
 
-## 🔨 CREATING NOW  
-2. Models/FoodItem.swift
-3. Models/MealEntry.swift
-4. Models/DailyLog.swift
-5. Models/UserSettings.swift
-6. Repositories/FoodRepository.swift
-7. Repositories/MealLogRepository.swift
-8. Interactors/FoodSearchInteractor.swift
-9. Interactors/MealLoggingInteractor.swift
-10. Views/Main/TodayView.swift (REBUILT with native Gauge)
-11. Views/Components/MacroGaugeCard.swift (native Gauge API)
-12. Views/Components/MealListSection.swift (native List)
-13. App/FoodLensApp.swift (entry point with routing)
-14. Utilities/HapticManager.swift
-15. Utilities/Extensions.swift
 
-## 📝 PATTERN DOCUMENTED (You complete following same pattern)
-16-20. Remaining Interactors (HistoryInteractor, SettingsInteractor, etc.)
-21-24. Remaining Views (HistoryView, SettingsView, LogMealSheet, FoodSearchView)
-25-28. Onboarding Views (keep existing, just update imports)
-
-Total: 28 files
-Core demonstration: 15 files (showing every pattern)
-Rest: Follow established patterns (documented in README)
+TO DO
+-----
+Views/Onboarding/OnboardingCoordinator.swift   (currently a placeholder in FoodLensApp.swift)
+Views/Onboarding/QuickSetupView.swift          (user enters macros directly)
+Views/Onboarding/GuidedSetupView.swift         (user enters profile, app calculates targets)
+Interactors/SettingsInteractor.swift           (BMR/TDEE calc + settings validation)

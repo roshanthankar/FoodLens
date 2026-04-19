@@ -1,27 +1,60 @@
-# FoodLens Clean Architecture Rebuild - Progress Tracker
+# FoodLens — Build Progress
 
-## ✅ Phase 1: Foundation (In Progress)
-- [x] AppState.swift - Centralized state management
-- [ ] Models (4 files) - SwiftData entities
-- [ ] Repositories (2 files) - Data access layer
-- [ ] Interactors (4 files) - Business logic layer
+## Done
 
-## ⏳ Phase 2: Native Components
-- [ ] MacroGaugeCard.swift - Using native Gauge API
-- [ ] WeeklyProteinChart.swift - Using Charts framework
-- [ ] MealListSection.swift - Native List styling
-- [ ] FormComponents.swift - Native Form helpers
+**Foundation**
+- [x] AppState.swift
+- [x] FoodLensApp.swift — entry point, DI, routing, SwiftData setup
 
-## ⏳ Phase 3: Views
-- [ ] TodayView.swift - Home screen (List + Gauge)
-- [ ] HistoryView.swift - 7-day view (List + Charts)
-- [ ] SettingsView.swift - Settings (Form)
-- [ ] Onboarding views (4 files) - Keep existing
+**Models**
+- [x] FoodItem.swift
+- [x] MealEntry.swift
+- [x] DailyLog.swift
+- [x] UserSettings.swift
 
-## ⏳ Phase 4: Integration
-- [ ] FoodLensApp.swift - App entry with routing
-- [ ] DI Container - Dependency injection
-- [ ] Test structure - ViewInspector setup
-- [ ] Package & deliver
+**Repositories**
+- [x] FoodRepository.swift — search, CRUD, favorites, recently used
+- [x] MealLogRepository.swift — save, fetch today, history, daily logs
 
-## 🎯 Target: ~25 Swift files, 100% HIG-compliant, fully testable
+**Interactors**
+- [x] FoodSearchInteractor.swift — fuzzy search, group filter, favorites, discovery
+- [x] MealLoggingInteractor.swift — log, quick log, bulk log, edit, delete, undo
+
+**Views**
+- [x] TodayView.swift — calories pill, macro gauges, quick log, meal rows, swipe delete
+- [x] HistoryView.swift — 7-day breakdown, avg macros, weekly protein chart
+- [x] FoodSearchView.swift — search bar, favorites section, recents section
+- [x] LogMealSheet.swift — food search → serving detail → log button
+- [x] SettingsView.swift
+
+**Components**
+- [x] MacroGaugeCard.swift — linear + circular variants
+- [x] WeeklyProteinChart.swift
+
+**Utilities**
+- [x] HapticManager.swift
+
+**Data**
+- [x] foodlens-food-database.json — 542 IFCT 2017 Indian foods
+
+---
+
+## To Do
+
+**Onboarding**
+- [ ] OnboardingCoordinator.swift — currently a placeholder button
+- [ ] QuickSetupView.swift — enter macros directly
+- [ ] GuidedSetupView.swift — enter profile, app calculates targets
+
+**Missing pieces**
+- [ ] SettingsInteractor.swift
+- [ ] Privacy policy (required for App Store)
+
+---
+
+## Stats
+
+- Swift files built: ~18
+- Food items in database: 542
+- Screens working: Today, History, Log Meal, Food Search, Settings
+- Screens pending: Onboarding (3 screens)

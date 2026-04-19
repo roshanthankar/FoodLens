@@ -1,150 +1,95 @@
-# FoodLens Clean Architecture
+# FoodLens — Architecture
 
-## 🏗️ Architecture Layers
-
-```
-┌─────────────────────────────────────────────┐
-│              Presentation Layer              │
-│         (SwiftUI Views - Pure UI)           │
-├─────────────────────────────────────────────┤
-│           Business Logic Layer               │
-│        (Interactors - Side Effects)         │
-├─────────────────────────────────────────────┤
-│            Data Access Layer                 │
-│      (Repositories - CRUD Operations)       │
-├─────────────────────────────────────────────┤
-│              Persistence Layer               │
-│         (SwiftData Models + JSON)           │
-└─────────────────────────────────────────────┘
-```
-
-## 📊 Data Flow
+## Layers
 
 ```
-User Action (Tap)
-    ↓
-SwiftUI View
-    ↓
-Interactor (Business Logic)
-    ↓
-Repository (Data Access)
-    ↓
-SwiftData / JSON
-    ↓
-Repository Returns Data
-    ↓
-Interactor Updates AppState
-    ↓
-View Re-renders (Automatic)
+Views  →  Interactors  →  Repositories  →  SwiftData
 ```
 
-## 🎯 Key Patterns Applied
+**Views** — SwiftUI screens. Read from `AppState`, call Interactors for actions. No business logic.
 
-### 1. Single Source of Truth (AppState)
-- All app state lives in `AppState.swift`
-- Views are pure functions of state
-- No local `@State` for shared data
+**Interactors** — Business logic. Validate input, call Repositories, update `AppState`, trigger haptics.
 
-### 2. Dependency Injection
-- Native `@Environment` for DI
-- All dependencies injected via environment
-- Easy to mock for testing
+**Repositories** — SwiftData CRUD. No logic, just reads and writes.
 
-### 3. Separation of Concerns
-- **Views**: Only UI, no business logic
-- **Interactors**: Only business logic, no UI
-- **Repositories**: Only data access, no business logic
+**AppState** — Single source of truth. `@Observable` singleton. All views react to it automatically.
 
-### 4. Testability
-- Every layer can be tested independently
-- Interactors can be tested without UI
-- Views can be tested with ViewInspector
+---
 
-## 📦 File Organization
+## Data Flow
+
+```
+User taps something
+    → View calls Interactor
+    → Interactor calls Repository
+    → Repository reads/writes SwiftData
+    → Interactor updates AppState
+    → View re-renders automatically
+```
+
+---
+
+## File Map
 
 ```
 FoodLens/
 ├── App/
-│   ├── FoodLensApp.swift      # Entry point + routing
-│   └── AppState.swift          # Centralized state
-├── Models/
-│   ├── FoodItem.swift          # SwiftData model
-│   ├── MealEntry.swift         # SwiftData model
-│   ├── DailyLog.swift          # SwiftData model
-│   └── UserSettings.swift      # SwiftData model
-├── Repositories/
-│   ├── FoodRepository.swift    # Food DB operations
-│   └── MealLogRepository.swift # Meal logging operations
-├── Interactors/
+│   ├── FoodLensApp.swift           # Entry point, DI setup, routing
+│   └── AppState.swift              # Centralized state (Redux-like)
+│
+├── Models/                         # SwiftData entities
+│   ├── FoodItem.swift
+│   ├── MealEntry.swift
+│   ├── DailyLog.swift
+│   └── UserSettings.swift
+│
+├── Repositories/                   # Data access layer
+│   ├── FoodRepository.swift
+│   └── MealLogRepository.swift
+│
+├── Interactors/                    # Business logic layer
 │   ├── FoodSearchInteractor.swift
-│   ├── MealLoggingInteractor.swift
-│   ├── HistoryInteractor.swift
-│   └── SettingsInteractor.swift
+│   └── MealLoggingInteractor.swift
+│
 ├── Views/
 │   ├── Main/
 │   │   ├── TodayView.swift
 │   │   ├── HistoryView.swift
-│   │   └── SettingsView.swift
-│   ├── Components/
-│   │   ├── MacroGaugeCard.swift
-│   │   ├── WeeklyProteinChart.swift
-│   │   └── MealListSection.swift
-│   └── Onboarding/
-│       └── [4 onboarding views]
-└── Utilities/
-    ├── HapticManager.swift
-    └── Extensions.swift
+│   │   ├── SettingsView.swift
+│   │   ├── FoodSearchView.swift
+│   │   └── LogMealSheet.swift
+│   └── Components/
+│       ├── MacroGaugeCard.swift
+│       └── WeeklyProteinChart.swift
+│
+├── Utilities/
+│   └── HapticManager.swift
+│
+└── Data/
+    └── foodlens-food-database.json  # 542 IFCT foods
 ```
 
-## 🔄 Example Flow: Logging a Meal
+---
 
-```swift
-// 1. User taps "Log" button in LogMealSheet
-Button("Log") {
-    Task {
-        await mealLoggingInteractor.logMeal(
-            food: selectedFood,
-            servings: servingCount,
-            mealType: .lunch
-        )
-    }
-}
+## Key Patterns
 
-// 2. Interactor processes the business logic
-func logMeal(...) async {
-    // Create meal entry
-    let entry = MealEntry(...)
-    
-    // Save via repository
-    try await mealLogRepository.save(entry)
-    
-    // Update AppState (triggers UI update)
-    await MainActor.run {
-        appState.updateTodayMeals(fetchTodayMeals())
-    }
-    
-    // Mark food as recently used
-    await foodRepository.markAsUsed(food)
-    
-    // Trigger haptics
-    hapticManager.success()
-}
+**AppState** — Singleton, `@MainActor @Observable`. Holds today's meals, macro totals, recents, favorites, routing, errors. Views never write to it directly — only Interactors do.
 
-// 3. View automatically re-renders (state changed)
-// No manual refresh needed!
-```
+**Dependency Injection** — Everything passed via `@Environment`. `FoodLensApp` creates all repositories and interactors, injects them at the root.
 
-## ✅ Benefits of This Architecture
+**Meal logging flow:**
+1. User picks food in `LogMealSheet`
+2. Taps log → calls `mealLoggingInteractor.logMeal(...)`
+3. Interactor creates `MealEntry`, saves via `MealLogRepository`
+4. Calls `foodRepository.markAsUsed(food)`
+5. Fetches updated today's meals, pushes to `AppState`
+6. View re-renders, haptic fires
 
-1. **Testable**: Every component can be unit tested
-2. **Maintainable**: Clear responsibilities per layer
-3. **Scalable**: Easy to add new features
-4. **Debuggable**: Clear data flow
-5. **HIG-Compliant**: Native iOS patterns throughout
-6. **Type-Safe**: Compile-time safety everywhere
+**Search flow:**
+1. User types in `FoodSearchView`
+2. 180ms debounce → calls `foodSearchInteractor.search(query:)`
+3. Interactor calls `foodRepository.search(query:)`
+4. Repository does fuzzy match (contains + prefix sort) over all 542 foods
+5. Results stored in `foodSearchInteractor.searchResults`
 
-## 🎓 Inspired By
-
-- [Clean Architecture SwiftUI](https://github.com/nalexn/clean-architecture-swiftui)
-- Apple's HIG recommendations
-- Redux/Flux state management patterns
+**Onboarding routing** — On launch, `FoodLensApp` checks `UserSettings.hasCompletedOnboarding`. If false, sets `appState.routing = .onboarding`. `ContentView` switches between `OnboardingCoordinator` and the main `TabView` based on this.
