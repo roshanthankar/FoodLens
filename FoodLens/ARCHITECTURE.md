@@ -49,7 +49,8 @@ FoodLens/
 │
 ├── Interactors/                    # Business logic layer
 │   ├── FoodSearchInteractor.swift
-│   └── MealLoggingInteractor.swift
+│   ├── MealLoggingInteractor.swift
+│   └── SettingsInteractor.swift
 │
 ├── Views/
 │   ├── Main/
@@ -58,6 +59,10 @@ FoodLens/
 │   │   ├── SettingsView.swift
 │   │   ├── FoodSearchView.swift
 │   │   └── LogMealSheet.swift
+│   ├── Onboarding/
+│   │   ├── OnboardingWelcomeView.swift
+│   │   ├── QuickSetupView.swift
+│   │   └── GuidedSetupView.swift
 │   └── Components/
 │       ├── MacroGaugeCard.swift
 │       └── WeeklyProteinChart.swift

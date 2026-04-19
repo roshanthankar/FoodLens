@@ -3,6 +3,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
+    @Environment(SettingsInteractor.self) private var settingsInteractor
     @Environment(\.modelContext) private var modelContext
     @Query private var settings: [UserSettings]
 
@@ -112,19 +113,16 @@ struct SettingsView: View {
     }
 
     private func applyPreset(_ targets: MacroTargets) {
-        userSettings?.proteinTarget = targets.protein
-        userSettings?.carbsTarget = targets.carbs
-        userSettings?.fatTarget = targets.fat
-        save()
+        settingsInteractor.applyPreset(targets)
     }
 
     private func save() {
-        do {
-            try modelContext.save()
-            appState.userSettings = userSettings
-        } catch {
-            appState.setError(.databaseError(error.localizedDescription))
-        }
+        guard let s = userSettings else { return }
+        settingsInteractor.updateMacroTargets(
+            protein: s.proteinTarget,
+            carbs: s.carbsTarget,
+            fat: s.fatTarget
+        )
     }
 }
 

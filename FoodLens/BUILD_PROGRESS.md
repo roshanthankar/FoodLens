@@ -19,13 +19,19 @@
 **Interactors**
 - [x] FoodSearchInteractor.swift — fuzzy search, group filter, favorites, discovery
 - [x] MealLoggingInteractor.swift — log, quick log, bulk log, edit, delete, undo
+- [x] SettingsInteractor.swift — macro target updates, preset apply, BMR/TDEE recalculation, validation
 
-**Views**
+**Views — Main**
 - [x] TodayView.swift — calories pill, macro gauges, quick log, meal rows, swipe delete
 - [x] HistoryView.swift — 7-day breakdown, avg macros, weekly protein chart
 - [x] FoodSearchView.swift — search bar, favorites section, recents section
 - [x] LogMealSheet.swift — food search → serving detail → log button
-- [x] SettingsView.swift
+- [x] SettingsView.swift — macro targets, presets, display unit, haptics toggle
+
+**Views — Onboarding**
+- [x] OnboardingWelcomeView.swift — SF Symbol icon, tagline, feature bullets, two entry paths
+- [x] QuickSetupView.swift — enter protein/carbs/fat directly, live calorie calc
+- [x] GuidedSetupView.swift — 5-step flow (profile → body → activity → goal → results), auto-calculates targets
 
 **Components**
 - [x] MacroGaugeCard.swift — linear + circular variants
@@ -34,27 +40,31 @@
 **Utilities**
 - [x] HapticManager.swift
 
+**Assets**
+- [x] App icon — light, dark, tinted variants (SF Symbol fork.knife.circle.fill, 1024×1024)
+
 **Data**
 - [x] foodlens-food-database.json — 542 IFCT 2017 Indian foods
+
+**Docs / Store**
+- [x] docs/privacy-policy.html — hosted via GitHub Pages
 
 ---
 
 ## To Do
 
-**Onboarding**
-- [ ] OnboardingCoordinator.swift — currently a placeholder button
-- [ ] QuickSetupView.swift — enter macros directly
-- [ ] GuidedSetupView.swift — enter profile, app calculates targets
-
-**Missing pieces**
-- [ ] SettingsInteractor.swift
-- [ ] Privacy policy (required for App Store)
+**App Store submission**
+- [ ] Enable GitHub Pages (so privacy policy URL is live)
+- [ ] App Store Connect — create listing
+- [ ] TestFlight — build, upload, test on real device
+- [ ] Screenshots — 6.5" and 5.5" iPhone
+- [ ] App metadata — description, keywords, category
 
 ---
 
 ## Stats
 
-- Swift files built: ~18
+- Swift files built: ~22
 - Food items in database: 542
-- Screens working: Today, History, Log Meal, Food Search, Settings
-- Screens pending: Onboarding (3 screens)
+- Screens working: Today, History, Log Meal, Food Search, Settings, Onboarding (3 screens)
+- Screens pending: none

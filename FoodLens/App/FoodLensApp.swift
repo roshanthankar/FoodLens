@@ -23,6 +23,7 @@ struct FoodLensApp: App {
     /// Interactors (Business Logic Layer)
     @State private var foodSearchInteractor: FoodSearchInteractor
     @State private var mealLoggingInteractor: MealLoggingInteractor
+    @State private var settingsInteractor: SettingsInteractor
 
     private static let appSchema = Schema([
         FoodItem.self,
@@ -64,6 +65,11 @@ struct FoodLensApp: App {
                 appState: state,
                 mealLogRepository: localMealRepo,
                 foodRepository: localFoodRepo
+            ))
+
+            _settingsInteractor = State(initialValue: SettingsInteractor(
+                appState: state,
+                modelContext: context
             ))
         }
 
@@ -143,6 +149,7 @@ struct FoodLensApp: App {
                 .environment(\.modelContext, modelContainer.mainContext)
                 .environment(foodSearchInteractor)
                 .environment(mealLoggingInteractor)
+                .environment(settingsInteractor)
                 .task {
                     await initializeApp()
                 }
@@ -339,31 +346,13 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Onboarding Coordinator Placeholder
+// MARK: - Onboarding Coordinator
 
 struct OnboardingCoordinator: View {
-    @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
-    
     var body: some View {
-        VStack(spacing: 20) {
-            Text("🎉 Welcome to FoodLens!")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            Text("Onboarding views from previous version go here")
-                .foregroundStyle(.secondary)
-            
-            Button("Complete Onboarding") {
-                if let settings = appState.userSettings {
-                    settings.hasCompletedOnboarding = true
-                    try? modelContext.save()
-                    appState.routing = .today
-                }
-            }
-            .buttonStyle(.borderedProminent)
+        NavigationStack {
+            OnboardingWelcomeView()
         }
-        .padding()
     }
 }
 

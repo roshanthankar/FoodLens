@@ -16,11 +16,7 @@ A working iOS macro tracker for Indian food. All core screens are functional.
 
 ## What's not built yet
 
-**Onboarding** — The `OnboardingCoordinator` is a placeholder (single button that marks onboarding complete). The actual screens — quick setup (enter macros directly) and guided setup (enter profile, calculate targets) — still need to be built.
-
-**SettingsInteractor** — Settings currently writes directly to `UserSettings` via SwiftData. An interactor for validation + BMR/TDEE calculation logic should be added.
-
-**Privacy policy** — Required before App Store submission.
+Nothing. The app is feature complete and ready for App Store submission.
 
 ---
 
@@ -31,17 +27,14 @@ A working iOS macro tracker for Indian food. All core screens are functional.
 - `FoodRepository.seedDatabase()` only runs when the database has 0 food items. Safe to call on every launch.
 - The `+` tab in the tab bar doesn't navigate — it intercepts the tap to present `LogMealSheet` as a sheet. `appState.routing` stays on the current tab.
 - Meal type is auto-suggested by time of day (breakfast 5–11am, lunch 11am–4pm, dinner 4–10pm, snack otherwise).
+- Onboarding routing: on launch, `FoodLensApp` checks `UserSettings.hasCompletedOnboarding`. False → `appState.routing = .onboarding`. Both onboarding exit paths set this to true and route to `.today`.
 
 ---
 
-## How to continue
+## Next steps (App Store)
 
-To build the onboarding screens:
-1. Create views in `Views/Onboarding/`
-2. When the user finishes, set `settings.hasCompletedOnboarding = true`, save context, set `appState.routing = .today`
-3. The `OnboardingCoordinator` in `FoodLensApp.swift` is where to wire them in
-
-To add a `SettingsInteractor`:
-- Follow the same pattern as `MealLoggingInteractor`
-- Inject it via `@Environment` in `SettingsView`
-- Move the BMR/TDEE calculation from `UserSettings` into the interactor
+1. Enable GitHub Pages on the repo (`docs/` folder) so the privacy policy URL is live
+2. Create the app listing in App Store Connect
+3. Upload a build via TestFlight and test on a real device
+4. Capture screenshots — 6.5" (iPhone 15 Pro Max) and 5.5" (iPhone 8 Plus)
+5. Fill in metadata — description, keywords, Health & Fitness category
