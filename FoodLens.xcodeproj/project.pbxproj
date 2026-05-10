@@ -256,6 +256,7 @@
 				DEVELOPMENT_TEAM = 7PWTXXQ78Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIAppFonts = "MomoTrustSans-Light.ttf MomoTrustSans-Regular.ttf MomoTrustSans-Medium.ttf MomoTrustSans-SemiBold.ttf MomoTrustSans-Bold.ttf MomoTrustSans-ExtraBold.ttf MomoTrustDisplay-Regular.ttf MomoSignature-Regular.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +289,7 @@
 				DEVELOPMENT_TEAM = 7PWTXXQ78Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIAppFonts = "MomoTrustSans-Light.ttf MomoTrustSans-Regular.ttf MomoTrustSans-Medium.ttf MomoTrustSans-SemiBold.ttf MomoTrustSans-Bold.ttf MomoTrustSans-ExtraBold.ttf MomoTrustDisplay-Regular.ttf MomoSignature-Regular.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

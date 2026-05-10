@@ -9,17 +9,20 @@ import SwiftData
 @main
 struct FoodLensApp: App {
     // MARK: - Properties
-    
+
     /// Centralized app state (Redux-like)
     @State private var appState = AppState.shared
-    
+
+    /// Appearance preference (light / dark / system)
+    @State private var appTheme = AppTheme()
+
     /// SwiftData container
     let modelContainer: ModelContainer
-    
+
     /// Repositories (Data Access Layer)
     @State private var foodRepository: FoodRepository
     @State private var mealLogRepository: MealLogRepository
-    
+
     /// Interactors (Business Logic Layer)
     @State private var foodSearchInteractor: FoodSearchInteractor
     @State private var mealLoggingInteractor: MealLoggingInteractor
@@ -35,6 +38,9 @@ struct FoodLensApp: App {
     // MARK: - Initialization
         
         init() {
+            // 0. Register custom fonts (Info.plist UIAppFonts not picked up by Xcode in this project)
+            BrandFontRegistrar.registerCustomFonts()
+
             // 1. Setup SwiftData
             do {
                 modelContainer = try Self.makeModelContainer()
@@ -146,10 +152,12 @@ struct FoodLensApp: App {
         WindowGroup {
             ContentView()
                 .environment(appState)
+                .environment(appTheme)
                 .environment(\.modelContext, modelContainer.mainContext)
                 .environment(foodSearchInteractor)
                 .environment(mealLoggingInteractor)
                 .environment(settingsInteractor)
+                .preferredColorScheme(appTheme.appearance.colorScheme)
                 .task {
                     await initializeApp()
                 }
@@ -242,6 +250,7 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
     @Environment(MealLoggingInteractor.self) private var mealLoggingInteractor
     @Environment(\.modelContext) private var modelContext
+    @State private var selectedTab: MainTab = .home
     @State private var showingAddMeal = false
 
     var body: some View {
@@ -267,53 +276,85 @@ struct ContentView: View {
             Text(error.localizedDescription)
         }
     }
-    
-    private var mainTabView: some View {
-        TabView(selection: .init(
-            get: { appState.routing },
+
+    private var tabSelectionBinding: Binding<MainTab> {
+        Binding(
+            get: { selectedTab },
             set: { newValue in
-                // Intercept the "add" tab selection to show sheet instead
-                if case .add = newValue {
+                if newValue == .add {
                     showingAddMeal = true
-                    // Don't change the routing - stay on current tab
                 } else {
-                    appState.routing = newValue
+                    selectedTab = newValue
                 }
             }
-        )) {
-            TodayView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-                .tag(AppState.Routing.today)
+        )
+    }
 
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "calendar")
+    private var mainTabView: some View {
+        TabView(selection: tabSelectionBinding) {
+            Tab(value: MainTab.home) {
+                TodayView()
+            } label: {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: selectedTab == .home ? "house.fill" : "house")
+                        .contentTransition(.symbolEffect(.replace))
+                        .symbolEffect(.bounce, value: selectedTab)
                 }
-                .tag(AppState.Routing.history)
+                .accessibilityLabel("Home")
+            }
 
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+            Tab(value: MainTab.history) {
+                HistoryView()
+            } label: {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "calendar")
+                        .symbolEffect(.bounce, value: selectedTab)
                 }
-                .tag(AppState.Routing.settings)
+                .symbolVariant(selectedTab == .history ? .fill : .none)
+                .accessibilityLabel("History")
+            }
 
-            // Rightmost "+" tab (separated group)
-            Color.clear
-                .tabItem {
-                    Label("Add", systemImage: "plus.circle.fill")
+            Tab(value: MainTab.settings) {
+                SettingsView()
+            } label: {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: selectedTab == .settings ? "gearshape.fill" : "gearshape")
+                        .contentTransition(.symbolEffect(.replace))
+                        .symbolEffect(.bounce, value: selectedTab)
                 }
-                .tag(AppState.Routing.add)
-         }
-        .sheet(isPresented: $showingAddMeal) {
-            LogMealSheet(initialMealType: mealLoggingInteractor.suggestedMealType()) {
-                // Refresh data after logging
-                Task {
-                    await refreshData()
+                .accessibilityLabel("Settings")
+            }
+
+            // Detached capsule beside the main tab pill (iOS 26 search-role pattern)
+            Tab(value: MainTab.add, role: .search) {
+                Color.clear
+            } label: {
+                Label {
+                    Text("")
+                } icon: {
+                    Image(systemName: "plus")
+                        .symbolEffect(.bounce.up, options: .speed(1.4), value: showingAddMeal)
                 }
+                .accessibilityLabel("Add meal")
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
+        .tint(.brandTeal)
+        .onChange(of: selectedTab) { _, newValue in
+            appState.routing = newValue.routing
+        }
+        .sheet(isPresented: $showingAddMeal) {
+            LogMealSheet(initialMealType: mealLoggingInteractor.suggestedMealType()) {
+                Task { await refreshData() }
+            }
+        }
+        .ignoresSafeArea(.keyboard)
     }
     
     private func refreshData() async {
@@ -354,6 +395,41 @@ struct ContentView: View {
             }
         } catch {
             appState.setError(.databaseError(error.localizedDescription))
+        }
+    }
+}
+
+// MARK: - MainTab
+
+enum MainTab: String, CaseIterable, Identifiable {
+    case home, history, settings, add
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .home:     "Home"
+        case .history:  "History"
+        case .settings: "Settings"
+        case .add:      "Add"
+        }
+    }
+
+    func iconName(active: Bool) -> String {
+        switch self {
+        case .home:     active ? "house.fill"     : "house"
+        case .history:  active ? "calendar"       : "calendar"
+        case .settings: active ? "gearshape.fill" : "gearshape"
+        case .add:      "plus"
+        }
+    }
+
+    var routing: AppState.Routing {
+        switch self {
+        case .home:     .today
+        case .history:  .history
+        case .settings: .settings
+        case .add:      .today
         }
     }
 }

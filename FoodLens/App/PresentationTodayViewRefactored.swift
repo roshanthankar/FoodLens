@@ -33,16 +33,11 @@ struct TodayViewRefactored: View {
         Dictionary(grouping: appState.todayMeals) { $0.mealType }
     }
     
-    private var formattedDate: String {
-        Date.now.formatted(.dateTime.day().month(.abbreviated))
-    }
-    
     // MARK: - Body
-    
+
     var body: some View {
         NavigationStack {
             List {
-                headerSection
                 caloriesSection
                 macrosSection
                 quickLogSection
@@ -66,22 +61,6 @@ struct TodayViewRefactored: View {
     
     // MARK: - View Components
     
-    private var headerSection: some View {
-        Section {
-            Text("Today, \(formattedDate)")
-                .font(DesignTokens.Typography.largeTitle)
-                .foregroundStyle(DesignTokens.Colors.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .listRowInsets(EdgeInsets(
-                    top: DesignTokens.Spacing.xSmall,
-                    leading: 0,
-                    bottom: 0,
-                    trailing: 0
-                ))
-        }
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-    }
     
     private var caloriesSection: some View {
         Section {
@@ -102,28 +81,35 @@ struct TodayViewRefactored: View {
     
     private var macrosSection: some View {
         Section {
-            VStack(spacing: DesignTokens.Spacing.small) {
-                MacroGaugeView(
-                    label: "Protein",
-                    value: appState.todayTotals.protein,
-                    target: macroTargets.protein,
-                    color: DesignTokens.Colors.protein
-                )
-                
-                MacroGaugeView(
+            MacroGaugeView(
+                carbs: MacroData(
                     label: "Carbs",
                     value: appState.todayTotals.carbs,
                     target: macroTargets.carbs,
-                    color: DesignTokens.Colors.carbs
-                )
-                
-                MacroGaugeView(
-                    label: "Fat",
+                    color: Color(hex: "B7383C")
+                ),
+                protein: MacroData(
+                    label: "Protein",
+                    value: appState.todayTotals.protein,
+                    target: macroTargets.protein,
+                    color: Color(hex: "007A2F")
+                ),
+                fats: MacroData(
+                    label: "Fats",
                     value: appState.todayTotals.fat,
                     target: macroTargets.fat,
-                    color: DesignTokens.Colors.fat
-                )
-            }
+                    color: Color(hex: "515BBB")
+                ),
+                calories: MacroData(
+                    label: "Calories",
+                    value: appState.todayTotals.calories,
+                    target: macroTargets.calories,
+                    color: .primary,
+                    showIcon: false
+                ),
+                showDivider: true
+            )
+            .padding(.horizontal, DesignTokens.Spacing.large)
         }
         .listRowInsets(EdgeInsets())
         .listRowBackground(Color.clear)
@@ -283,6 +269,21 @@ private struct QuickLogRowView: View {
 // MARK: - Preview
 
 #Preview {
-    TodayViewRefactored()
-        .environment(AppState.shared)
+    let container = try! ModelContainer(
+        for: FoodItem.self, MealEntry.self, DailyLog.self, UserSettings.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    let appState = AppState.shared
+    let mealLogRepo = MealLogRepository(modelContext: container.mainContext)
+    let foodRepo = FoodRepository(modelContext: container.mainContext)
+    let interactor = MealLoggingInteractor(
+        appState: appState,
+        mealLogRepository: mealLogRepo,
+        foodRepository: foodRepo
+    )
+
+    return TodayViewRefactored()
+        .environment(appState)
+        .environment(interactor)
+        .modelContainer(container)
 }

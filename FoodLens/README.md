@@ -56,7 +56,9 @@ See `ARCHITECTURE.md` for the full breakdown.
 | FoodSearchView + LogMealSheet | Done |
 | SettingsView | Done |
 | Onboarding (3 screens) | Done |
-| MacroGaugeCard + WeeklyProteinChart | Done |
+| Components (CaloriesPill, MacroGauge, MealRow, SectionHeader, Chrome) | Done |
+| WeeklyProteinChart | Done |
+| Brand fonts (programmatic CTFont registration) | Done |
 | HapticManager | Done |
 | App icon (light / dark / tinted) | Done |
 | Food database (542 dishes) | Done |

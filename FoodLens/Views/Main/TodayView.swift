@@ -10,8 +10,30 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showLogMealSheet = false
     @State private var selectedMealType: MealType = .breakfast
-    @State private var deletedMealName: String?
-    @State private var showDeleteToast = false
+    @State private var selectedDate: Date = .now
+    @State private var showingProfile = false
+    @State private var dayMeals: [MealEntry] = []
+    @State private var selectedTimeOfDay: TimeOfDay = .morning
+
+    enum TimeOfDay: Hashable {
+        case morning, afternoon, night
+
+        var displayName: String {
+            switch self {
+            case .morning:   "Morning"
+            case .afternoon: "Afternoon"
+            case .night:     "Night"
+            }
+        }
+    }
+
+    private var timeOfDaySegments: [SectionHeaderSegment<TimeOfDay>] {
+        [
+            .init(id: .morning,   systemImage: "sun.horizon.fill", accessibilityLabel: "Morning"),
+            .init(id: .afternoon, systemImage: "sun.max.fill",     accessibilityLabel: "Afternoon"),
+            .init(id: .night,     systemImage: "moon.fill",        accessibilityLabel: "Night")
+        ]
+    }
 
     private var macroTargets: MacroTargets {
         guard let settings = appState.userSettings else { return .default }
@@ -22,34 +44,55 @@ struct TodayView: View {
         )
     }
 
-    private var todayMealsByType: [MealType: [MealEntry]] {
-        Dictionary(grouping: appState.todayMeals) { $0.mealType }
+    private var dayTotals: MacroTotals {
+        MacroTotals(
+            protein: dayMeals.reduce(0) { $0 + $1.proteinGrams },
+            carbs:   dayMeals.reduce(0) { $0 + $1.carbsGrams },
+            fat:     dayMeals.reduce(0) { $0 + $1.fatGrams }
+        )
+    }
+
+    private var dayMealsByType: [MealType: [MealEntry]] {
+        Dictionary(grouping: dayMeals) { $0.mealType }
+    }
+
+    private var mealsForSelectedTime: [MealEntry] {
+        dayMeals
+            .filter { meal in
+                let hour = Calendar.current.component(.hour, from: meal.timestamp)
+                switch selectedTimeOfDay {
+                case .morning:   return hour >= 5  && hour < 12
+                case .afternoon: return hour >= 12 && hour < 17
+                case .night:     return hour >= 17 || hour < 5
+                }
+            }
+            .sorted { $0.timestamp < $1.timestamp }
     }
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    Text("Today, \(formattedDate)")
-                        .font(.largeTitle.weight(.bold))
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 0, trailing: 0))
-                }
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
                 caloriesSummarySection
                 macroGaugesSection
-                quickActionsSection
 
-                if appState.todayMeals.isEmpty {
+                if dayMeals.isEmpty {
                     emptyMealsSection
                 } else {
                     mealsSection
                 }
             }
+            .task(id: selectedDate) {
+                await refreshData()
+            }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(32)
+            .scrollIndicators(.hidden)
+            .scrollContentBackground(.hidden)
+            .background(alignment: .top) {
+                GradientHeader(gradient: .homeHeader)
+                    .frame(height: 420)
+            }
+            .background(Color.surfaceBackground.ignoresSafeArea())
             .navigationBarHidden(true)
             .sheet(isPresented: $showLogMealSheet) {
                 LogMealSheet(initialMealType: selectedMealType) {
@@ -59,14 +102,9 @@ struct TodayView: View {
             .refreshable {
                 await refreshData()
             }
-            .overlay(alignment: .bottom) {
-                if showDeleteToast, let name = deletedMealName {
-                    DeleteToast(name: name)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .padding(.bottom, 12)
-                }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
             }
-            .animation(.spring(duration: 0.3), value: showDeleteToast)
         }
     }
 
@@ -74,128 +112,75 @@ struct TodayView: View {
 
     private var caloriesSummarySection: some View {
         Section {
-            HStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.body)
-                        .foregroundStyle(.orange)
-                        .accessibilityHidden(true)
-
-                    Text("Calories")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Text("\(Int(appState.todayTotals.calories))/\(Int(macroTargets.calories))")
-                    .font(.body.weight(.semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-
-                Text("kcal")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            .clipShape(Capsule())
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Calories")
-            .accessibilityValue("\(Int(appState.todayTotals.calories)) of \(Int(macroTargets.calories)) kilocalories")
+            CaloriesPillView(
+                current: Int(dayTotals.calories),
+                target: Int(macroTargets.calories)
+            )
+            .listRowInsets(EdgeInsets(top: 125, leading: 16, bottom: 8, trailing: 16))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } header: {
+            TopNavigationBar(
+                selectedDate: $selectedDate,
+                onProfileTap: { showingProfile = true }
+            )
+            .textCase(nil)
+            .listRowInsets(EdgeInsets())
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
     }
 
     private var macroGaugesSection: some View {
         Section {
-            VStack(spacing: 14) {
-                MacroGaugeCard(label: "Protein", value: appState.todayTotals.protein, target: macroTargets.protein, color: .green)
-                MacroGaugeCard(label: "Carbs",   value: appState.todayTotals.carbs,   target: macroTargets.carbs,   color: .blue)
-                MacroGaugeCard(label: "Fat",     value: appState.todayTotals.fat,     target: macroTargets.fat,     color: .orange)
-            }
+            MacroGaugeView(
+                carbs: MacroData(label: "Carbs", value: dayTotals.carbs, target: macroTargets.carbs, color: .macroCarbs),
+                protein: MacroData(label: "Protein", value: dayTotals.protein, target: macroTargets.protein, color: .macroProtein),
+                fats: MacroData(label: "Fats", value: dayTotals.fat, target: macroTargets.fat, color: .macroFats)
+            )
+            .padding(.horizontal, 20)
             .padding(.vertical, 4)
-        }
-        .listRowInsets(EdgeInsets())
-        .listRowBackground(Color.clear)
-    }
-
-    private var quickActionsSection: some View {
-        Section("Quick Log") {
-            if appState.recentFoods.isEmpty {
-                Text("Your recently logged foods will appear here.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(appState.recentFoods.prefix(3)) { food in
-                    Button {
-                        Task {
-                            await mealLoggingInteractor.quickLog(
-                                food: food,
-                                mealType: mealLoggingInteractor.suggestedMealType()
-                            )
-                            await refreshData()
-                        }
-                    } label: {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(food.foodName)
-                                    .font(.body.weight(.medium))
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(2)
-
-                                Text(food.servingDescription)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Text("+\(food.macros(servings: 1).protein, specifier: "%.1f")g P")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
-                                .background(Color.green.opacity(0.12))
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Quick log \(food.foodName)")
-                    .accessibilityHint("Logs one serving to \(mealLoggingInteractor.suggestedMealType().displayName)")
-                }
-            }
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } header: {
+            SectionHeaderView(title: "Macros")
+                .textCase(nil)
+                .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 12, trailing: 20))
         }
     }
 
     private var mealsSection: some View {
-        ForEach(MealType.allCases, id: \.self) { mealType in
-            if let meals = todayMealsByType[mealType], !meals.isEmpty {
-                Section(mealType.rawValue) {
-                    ForEach(meals.sorted(by: { $0.timestamp < $1.timestamp })) { meal in
-                        MealRow(meal: meal)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    deletedMealName = meal.foodName
-                                    Task {
-                                        await mealLoggingInteractor.deleteMeal(meal)
-                                        await refreshData()
-                                        showDeleteToast = true
-                                        try? await Task.sleep(for: .seconds(2.5))
-                                        showDeleteToast = false
-                                    }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+        Section {
+            if mealsForSelectedTime.isEmpty {
+                ContentUnavailableView(
+                    "No \(selectedTimeOfDay.displayName) Meals",
+                    systemImage: "fork.knife",
+                    description: Text("Nothing logged for \(selectedTimeOfDay.displayName.lowercased()) yet. Tap + to log a meal.")
+                )
+            } else {
+                ForEach(mealsForSelectedTime) { meal in
+                    MealRowView(meal: meal, onDelete: nil)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await mealLoggingInteractor.deleteMeal(meal)
+                                    await refreshData()
                                 }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
-                    }
+                        }
                 }
             }
+        } header: {
+            SectionHeaderView(
+                title: "Meals",
+                segments: timeOfDaySegments,
+                selection: $selectedTimeOfDay
+            )
+            .textCase(nil)
+            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 12, trailing: 20))
         }
+        .listSectionSpacing(40)
     }
 
     private var emptyMealsSection: some View {
@@ -205,19 +190,27 @@ struct TodayView: View {
                 systemImage: "fork.knife",
                 description: Text("Tap + to log your first meal. Swipe left on any meal to delete it.")
             )
+        } header: {
+            SectionHeaderView(
+                title: "Meals",
+                segments: timeOfDaySegments,
+                selection: $selectedTimeOfDay
+            )
+            .textCase(nil)
+            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 12, trailing: 20))
         }
-    }
-
-    private var formattedDate: String {
-        Date.now.formatted(.dateTime.day().month(.abbreviated))
+        .listSectionSpacing(40)
     }
 
     private func refreshData() async {
         let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: Date())
+        let startOfDay = calendar.startOfDay(for: selectedDate)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
 
-        let todayDescriptor = FetchDescriptor<MealEntry>(
-            predicate: #Predicate { meal in meal.timestamp >= startOfDay },
+        let dayDescriptor = FetchDescriptor<MealEntry>(
+            predicate: #Predicate { meal in
+                meal.timestamp >= startOfDay && meal.timestamp < endOfDay
+            },
             sortBy: [SortDescriptor(\.timestamp)]
         )
 
@@ -233,92 +226,20 @@ struct TodayView: View {
         )
 
         do {
-            let todayMeals    = try modelContext.fetch(todayDescriptor)
+            let meals         = try modelContext.fetch(dayDescriptor)
             let recentFoods   = try modelContext.fetch(recentFoodsDescriptor)
             let favoriteFoods = try modelContext.fetch(favoriteFoodsDescriptor)
 
-            appState.updateTodayMeals(todayMeals)
+            dayMeals = meals
             appState.updateRecentFoods(recentFoods)
             appState.updateFavoriteFoods(favoriteFoods)
+
+            if calendar.isDateInToday(selectedDate) {
+                appState.updateTodayMeals(meals)
+            }
         } catch {
             appState.setError(.databaseError(error.localizedDescription))
         }
-    }
-}
-
-// MARK: - Delete Toast
-
-private struct DeleteToast: View {
-    let name: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "trash")
-                .font(.subheadline)
-            Text("\(name) deleted")
-                .font(.subheadline.weight(.medium))
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.primary.opacity(0.9), in: Capsule())
-    }
-}
-
-// MARK: - Meal Row
-
-struct MealRow: View {
-    let meal: MealEntry
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                Text(meal.foodName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-
-                Spacer(minLength: 8)
-
-                HStack(spacing: 4) {
-                    Text(meal.servingSizeText)
-                    Text("•")
-                    Text(meal.timeDisplay)
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-            }
-
-            HStack(spacing: 8) {
-                MacroChip(label: "Protein", value: meal.proteinGrams, color: .green)
-                MacroChip(label: "Carbs",   value: meal.carbsGrams,   color: .blue)
-                MacroChip(label: "Fat",     value: meal.fatGrams,     color: .orange)
-            }
-        }
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(meal.foodName)
-        .accessibilityValue("\(meal.servingSizeText), \(meal.timeDisplay), \(Int(meal.proteinGrams))g protein, \(Int(meal.carbsGrams))g carbs, \(Int(meal.fatGrams))g fat")
-    }
-}
-
-// MARK: - Macro Chip
-
-struct MacroChip: View {
-    let label: String
-    let value: Double
-    let color: Color
-
-    var body: some View {
-        Text("\(Int(value))g")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
-            .accessibilityLabel("\(label): \(Int(value)) grams")
     }
 }
 
