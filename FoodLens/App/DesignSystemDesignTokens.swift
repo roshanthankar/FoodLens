@@ -14,6 +14,45 @@ enum DesignTokens {
     
     /// Typography scale following Apple's type system
     enum Typography {
+        // Display styles (for large metrics and numbers)
+        enum Display {
+            // 60px with weight 600 (semibold)
+            static let large: Font = {
+                #if os(iOS)
+                return Font(UIFont(name: "MomoTrustSans-SemiBold", size: 60) ?? 
+                           UIFont.systemFont(ofSize: 60, weight: .init(rawValue: 600)))
+                #elseif os(macOS)
+                return Font(NSFont(name: "MomoTrustSans-SemiBold", size: 60) ?? 
+                           NSFont.systemFont(ofSize: 60, weight: .init(rawValue: 600)))
+                #endif
+            }()
+            
+            // 24px with weight 500 (medium)
+            static let medium: Font = {
+                #if os(iOS)
+                return Font(UIFont(name: "MomoTrustSans-Medium", size: 24) ?? 
+                           UIFont.systemFont(ofSize: 24, weight: .init(rawValue: 500)))
+                #elseif os(macOS)
+                return Font(NSFont(name: "MomoTrustSans-Medium", size: 24) ?? 
+                           NSFont.systemFont(ofSize: 24, weight: .init(rawValue: 500)))
+                #endif
+            }()
+        }
+        
+        // Body styles
+        enum Body {
+            // 16px with weight 500 (medium)
+            static let medium: Font = {
+                #if os(iOS)
+                return Font(UIFont(name: "MomoTrustSans-Medium", size: 16) ?? 
+                           UIFont.systemFont(ofSize: 16, weight: .init(rawValue: 500)))
+                #elseif os(macOS)
+                return Font(NSFont(name: "MomoTrustSans-Medium", size: 16) ?? 
+                           NSFont.systemFont(ofSize: 16, weight: .init(rawValue: 500)))
+                #endif
+            }()
+        }
+        
         // Large Titles (34pt)
         static let largeTitle = Font.largeTitle.weight(.bold)
         
@@ -109,7 +148,7 @@ enum DesignTokens {
         // Primary brand colors
         static let accent = Color.accentColor
         static let primary = Color.primary
-        static let secondary = Color.secondary
+        static let secondary = Color(hex: "707070") // Secondary text color
         
         // Macro colors
         static let protein = Color.green
@@ -145,6 +184,32 @@ enum DesignTokens {
 }
 
 // MARK: - Convenience Extensions
+
+extension Color {
+    /// Initialize Color from hex string
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (255, 0, 0, 0)
+        }
+        
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
 
 extension View {
     /// Apply standard card styling

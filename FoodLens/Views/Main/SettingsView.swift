@@ -7,8 +7,6 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var settings: [UserSettings]
 
-    @State private var showSavedToast = false
-
     private var userSettings: UserSettings? { settings.first }
 
     var body: some View {
@@ -64,7 +62,6 @@ struct SettingsView: View {
 
                                     Button("Apply") {
                                         applyPreset(preset.targets)
-                                        showToast()
                                     }
                                     .buttonStyle(.bordered)
                                     .tint(.primary)
@@ -84,11 +81,6 @@ struct SettingsView: View {
                             Toggle("Enable Haptics",  isOn: binding(for: \.enableHaptics,  defaultValue: true))
                         }
 
-                        Section("About") {
-                            LabeledContent("Food database", value: "IFCT + Indian dishes")
-                            LabeledContent("Storage",       value: "On-device (SwiftData)")
-                            LabeledContent("Version",       value: appVersion)
-                        }
                     }
                 } else {
                     ContentUnavailableView(
@@ -100,14 +92,6 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .overlay(alignment: .bottom) {
-                if showSavedToast {
-                    SavedToast()
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .padding(.bottom, 12)
-                }
-            }
-            .animation(.spring(duration: 0.3), value: showSavedToast)
         }
     }
 
@@ -137,37 +121,8 @@ struct SettingsView: View {
             carbs: s.carbsTarget,
             fat: s.fatTarget
         )
-        showToast()
     }
 
-    private func showToast() {
-        showSavedToast = true
-        Task {
-            try? await Task.sleep(for: .seconds(2))
-            showSavedToast = false
-        }
-    }
-
-    private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-    }
-}
-
-// MARK: - Saved Toast
-
-private struct SavedToast: View {
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-            Text("Saved")
-                .font(.subheadline.weight(.medium))
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.primary.opacity(0.9), in: Capsule())
-    }
 }
 
 // MARK: - Macro Target Control

@@ -34,14 +34,30 @@
 - [x] GuidedSetupView.swift — 5-step flow (profile → body → activity → goal → results), auto-calculates targets
 
 **Components**
-- [x] MacroGaugeCard.swift — linear + circular variants
+- [x] CaloriesPillView — percentage + fraction display
+- [x] MacroGaugeView — 3-macro carbs/protein/fats variant with status icons
+- [x] MealRowView — colored letter-prefix macro chips (C/P/F)
+- [x] SectionHeaderView — label + optional iOS segmented control (icon segments)
+- [x] EmptyStateView
 - [x] WeeklyProteinChart.swift
+- [x] Chrome — TopNavigationBar, DateChip, DatePickerSheet (with "Today" jump), GradientHeader
 
 **Utilities**
 - [x] HapticManager.swift
 
 **Assets**
 - [x] App icon — light, dark, tinted variants (SF Symbol fork.knife.circle.fill, 1024×1024)
+- [x] Brand colorsets — BrandTeal, MacroCarbs/Protein/Fats, Surface/Header tones (per-mode light + dark)
+- [x] MomoTrustSans / MomoTrustDisplay / MomoSignature TTFs bundled
+- [x] Programmatic font registration via CTFontManager (`INFOPLIST_KEY_UIAppFonts` is silently dropped in synchronized-folder Xcode projects)
+
+**Home screen polish**
+- [x] Scrolling top navigation bar (DateChip + profile button) inside the List
+- [x] Header gradient pinned to top, matching app background in light/dark
+- [x] Macros section header
+- [x] Meals section with morning/afternoon/night/(evening) segmented filter
+- [x] Date-driven data fetch — `task(id: selectedDate)` rewires per day
+- [x] Per-section spacing — 32pt calories↔macros, 40pt macros↔meals
 
 **Data**
 - [x] foodlens-food-database.json — 542 IFCT 2017 Indian foods
